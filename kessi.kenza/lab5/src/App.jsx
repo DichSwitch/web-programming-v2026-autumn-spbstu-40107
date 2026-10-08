@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 
 const STORAGE_KEY = 'notes';
 
@@ -44,6 +44,7 @@ export default function App() {
   const [tagFilter, setTagFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
@@ -75,18 +76,37 @@ export default function App() {
     return result;
   }, [notes, allTags]);
 
-  function handleSubmit(event) {
-    event.preventDefault();
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
+  // Читаем значения из состояния React, а если их нет — прямо из DOM.
+  // Так заметка создастся даже если поля были заполнены программно
+  // без событий onChange.
+  function readFormValues() {
+    const elements = formRef.current.elements;
+    return {
+      titleValue: (title || String(elements.title.value)).trim(),
+      contentValue: (content || String(elements.content.value)).trim(),
+      tagsValue: tagsInput || String(elements.tags.value),
+    };
+  }
+
+  function resetForm() {
+    setTitle('');
+    setContent('');
+    setTagsInput('');
+    formRef.current.reset();
+  }
+
+  function addOrUpdateNote() {
+    const {titleValue, contentValue, tagsValue} = readFormValues();
+    if (!titleValue) {
       return;
     }
+    const noteTags = parseTags(tagsValue.trim());
     if (editingId === null) {
       const note = {
         id: Date.now(),
-        title: trimmedTitle,
-        content: content.trim(),
-        tags: parseTags(tagsInput),
+        title: titleValue,
+        content: contentValue,
+        tags: noteTags,
         date: new Date().toISOString().slice(0, 10),
       };
       setNotes((prev) => [note, ...prev]);
@@ -96,18 +116,25 @@ export default function App() {
           note.id === editingId
             ? {
                 ...note,
-                title: trimmedTitle,
-                content: content.trim(),
-                tags: parseTags(tagsInput),
+                title: titleValue,
+                content: contentValue,
+                tags: noteTags,
               }
             : note,
         ),
       );
       setEditingId(null);
     }
-    setTitle('');
-    setContent('');
-    setTagsInput('');
+    resetForm();
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    addOrUpdateNote();
+  }
+
+  function handleAddClick() {
+    addOrUpdateNote();
   }
 
   function startEdit(note) {
@@ -131,14 +158,13 @@ export default function App() {
     <main className="app" data-testid="app">
       <h1>Заметки</h1>
 
-      <form className="note-form" onSubmit={handleSubmit}>
+      <form ref={formRef} className="note-form" onSubmit={handleSubmit}>
         <input
           data-testid="note-title"
           name="title"
           placeholder="Заголовок"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          required
         />
         <textarea
           data-testid="note-content"
@@ -154,7 +180,7 @@ export default function App() {
           value={tagsInput}
           onChange={(event) => setTagsInput(event.target.value)}
         />
-        <button data-testid="note-add" type="submit">
+        <button data-testid="note-add" type="button" onClick={handleAddClick}>
           {editingId === null ? 'Добавить заметку' : 'Сохранить изменения'}
         </button>
       </form>
@@ -195,7 +221,7 @@ export default function App() {
         aria-label="Список заметок"
       >
         {filteredNotes.length === 0 ? (
-          <p className="note-list__empty">Заметок не найдено</p>
+          <p className="note-list-empty">Заметок не найдено</p>
         ) : (
           filteredNotes.map((note) => (
             <article
@@ -203,17 +229,17 @@ export default function App() {
               data-testid="note-item"
               key={note.id}
             >
-              <h2 className="note-card__title">{note.title}</h2>
-              <p className="note-card__content">{note.content}</p>
-              <p className="note-card__meta">
+              <h2 className="note-card-title">{note.title}</h2>
+              <p className="note-card-content">{note.content}</p>
+              <p className="note-card-meta">
                 <span>{note.date}</span>
                 {note.tags.map((tag) => (
-                  <span className="note-card__tag" key={tag}>
+                  <span className="note-card-tag" key={tag}>
                     #{tag}
                   </span>
                 ))}
               </p>
-              <div className="note-card__actions">
+              <div className="note-card-actions">
                 <button type="button" onClick={() => startEdit(note)}>
                   Редактировать
                 </button>
@@ -229,7 +255,7 @@ export default function App() {
       <section className="groups" aria-label="Группы по тегам">
         <h2>Группы по тегам</h2>
         {Object.entries(groups).map(([tag, groupNotes]) => (
-          <div className="groups__item" key={tag}>
+          <div className="groups-item" key={tag}>
             <h3>
               #{tag} ({groupNotes.length})
             </h3>
