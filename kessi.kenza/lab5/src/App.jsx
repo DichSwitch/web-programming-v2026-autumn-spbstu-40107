@@ -2,22 +2,7 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 
 const STORAGE_KEY = 'notes';
 
-const INITIAL_NOTES = [
-  {
-    id: 1,
-    title: 'Первая заметка',
-    content: 'Пример заметки с тегами.',
-    tags: ['учёба', 'важное'],
-    date: '2026-09-14',
-  },
-  {
-    id: 2,
-    title: 'Купить продукты',
-    content: 'Молоко, хлеб, кофе.',
-    tags: ['личное'],
-    date: '2026-09-15',
-  },
-];
+const INITIAL_NOTES = [];
 
 function loadNotes() {
   try {
