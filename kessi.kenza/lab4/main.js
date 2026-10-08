@@ -7,7 +7,7 @@ const entityList = document.querySelector('[data-testid="entity-list"]');
 const entityForm = document.querySelector('[data-testid="entity-form"]');
 const submitButton = entityForm.querySelector('button[type="submit"]');
 
-// Строка состояния для отображения pending / fulfilled / rejected
+// Строка состояния: pending / fulfilled / rejected
 const statusElement = document.createElement('p');
 statusElement.className = 'form-status';
 statusElement.setAttribute('role', 'status');
@@ -15,12 +15,10 @@ entityForm.appendChild(statusElement);
 
 function showStatus(message, isError = false) {
   statusElement.textContent = message;
-  statusElement.classList.toggle('form-status--error', isError);
+  statusElement.classList.toggle('form-status-error', isError);
 }
 
-// --- состояния промисов: что сейчас выполняется асинхронно ---
 let addPending = false;
-const pendingProductIds = new Set();
 
 function setAddPending(pending) {
   addPending = pending;
@@ -46,6 +44,7 @@ function isValidProductData(data) {
     data.price >= 0
   );
 }
+
 function loadProducts() {
   let raw;
   try {
@@ -87,6 +86,7 @@ function loadProducts() {
 }
 
 let products = loadProducts();
+
 function saveProducts() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
@@ -95,6 +95,8 @@ function saveProducts() {
     showStatus('Не удалось сохранить данные в localStorage', true);
   }
 }
+
+// промис может перейти и в rejected: ошибка из action ловится и reject'ится
 function runAsync(action) {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -110,29 +112,25 @@ function runAsync(action) {
 function addProductAsync(product) {
   setAddPending(true); // pending
   showStatus('Добавление товара…');
-  return (
-    runAsync(() => {
-      // повторная проверка внутри асинхронной операции —
-      // защита от двойного быстрого submit (race condition)
-      if (products.some((item) => item.id === product.id)) {
-        throw new Error(`Товар с ID ${product.id} уже существует`);
-      }
-      products.push(product);
-      saveProducts();
-      render();
+  return runAsync(() => {
+    // повторная проверка внутри асинхронной операции —
+    // защита от двойного быстрого submit (race condition)
+    if (products.some((item) => item.id === product.id)) {
+      throw new Error(`Товар с ID ${product.id} уже существует`);
+    }
+    products.push(product);
+    saveProducts();
+  })
+    .then(() => {
+      render(); // UI обновляется только здесь — после задержки
+      showStatus(`Товар «${product.name}» добавлен`);
     })
-      // fulfilled
-      .then(() => showStatus(`Товар «${product.name}» добавлен`))
-      // rejected — ошибка показывается пользователю, приложение не падает
-      .catch((error) => showStatus(error.message, true))
-      // cleanup независимо от исхода
-      .finally(() => setAddPending(false))
-  );
+    .catch((error) => showStatus(error.message, true))
+    .finally(() => setAddPending(false));
 }
 
-function deleteProductAsync(id) {
-  pendingProductIds.add(id); // pending для конкретной карточки
-  render(); // чтобы кнопка стала disabled
+function deleteProductAsync(id, button) {
+  button.disabled = true; // pending: блокируем только нажатую кнопку
   return runAsync(() => {
     const product = products.find((item) => item.id === id);
     if (!product) {
@@ -143,18 +141,17 @@ function deleteProductAsync(id) {
     return product.name;
   })
     .then((name) => {
-      render();
+      render(); // список меняется только после setTimeout — асинхронно
       showStatus(`Товар «${name}» удалён`);
     })
-    .catch((error) => showStatus(error.message, true))
-    .finally(() => {
-      pendingProductIds.delete(id);
+    .catch((error) => {
       render();
+      showStatus(error.message, true);
     });
 }
 
-function addCategoryAsync(id, category) {
-  pendingProductIds.add(id);
+function addCategoryAsync(id, category, button) {
+  button.disabled = true;
   return runAsync(() => {
     const product = products.find((item) => item.id === id);
     if (!product) {
@@ -167,15 +164,14 @@ function addCategoryAsync(id, category) {
       render();
       showStatus(`Категория «${category}» добавлена`);
     })
-    .catch((error) => showStatus(error.message, true))
-    .finally(() => {
-      pendingProductIds.delete(id);
+    .catch((error) => {
       render();
+      showStatus(error.message, true);
     });
 }
 
-function removeCategoryAsync(id, category) {
-  pendingProductIds.add(id);
+function removeCategoryAsync(id, category, button) {
+  button.disabled = true;
   return runAsync(() => {
     const product = products.find((item) => item.id === id);
     if (!product) {
@@ -188,10 +184,9 @@ function removeCategoryAsync(id, category) {
       render();
       showStatus(`Категория «${category}» удалена`);
     })
-    .catch((error) => showStatus(error.message, true))
-    .finally(() => {
-      pendingProductIds.delete(id);
+    .catch((error) => {
       render();
+      showStatus(error.message, true);
     });
 }
 
@@ -210,27 +205,25 @@ function escapeHtml(value) {
 function render() {
   entityList.innerHTML = '';
   for (const product of products) {
-    const isPending = pendingProductIds.has(product.id);
     const card = document.createElement('article');
     card.className = 'card';
     card.dataset.testid = 'entity-card';
     card.innerHTML = `
-      <h2 class="card__name">${escapeHtml(product.name)}</h2>
-      <p class="card__price">Цена: ${product.price}</p>
-      <p class="card__meta">Категорий: ${product.categoryCount}</p>
-      <div class="card__tags">
+      <h2 class="card-name">${escapeHtml(product.name)}</h2>
+      <p class="card-price">Цена: ${product.price}</p>
+      <p class="card-meta">Категорий: ${product.categoryCount}</p>
+      <div class="card-tags">
         ${product.categories
           .map(
             (category) => `
               <span class="chip">
                 ${escapeHtml(category)}
                 <button
-                  class="btn btn--small"
+                  class="btn btn-small"
                   type="button"
                   data-remove-category
                   data-id="${product.id}"
                   data-category="${escapeHtml(category)}"
-                  ${isPending ? 'disabled' : ''}
                 >
                   Удалить категорию
                 </button>
@@ -238,21 +231,18 @@ function render() {
           )
           .join('')}
       </div>
-      <form class="card__category-form" data-id="${product.id}">
+      <form class="card-category-form" data-id="${product.id}">
         <label>
           Новая категория
           <input name="category" type="text" required />
         </label>
-        <button class="btn" type="submit" ${isPending ? 'disabled' : ''}>
-          Добавить категорию
-        </button>
+        <button class="btn" type="submit">Добавить категорию</button>
       </form>
       <button
-        class="btn btn--danger"
+        class="btn btn-danger"
         type="button"
         data-testid="delete-entity"
         data-id="${product.id}"
-        ${isPending ? 'disabled' : ''}
       >
         Удалить товар
       </button>
@@ -294,7 +284,7 @@ entityList.addEventListener('click', (event) => {
     if (deleteButton.disabled) {
       return;
     }
-    deleteProductAsync(Number(deleteButton.dataset.id));
+    deleteProductAsync(Number(deleteButton.dataset.id), deleteButton);
     return;
   }
   const categoryButton = event.target.closest('[data-remove-category]');
@@ -305,12 +295,13 @@ entityList.addEventListener('click', (event) => {
     removeCategoryAsync(
       Number(categoryButton.dataset.id),
       categoryButton.dataset.category,
+      categoryButton,
     );
   }
 });
 
 entityList.addEventListener('submit', (event) => {
-  const form = event.target.closest('.card__category-form');
+  const form = event.target.closest('.card-category-form');
   if (!form) {
     return;
   }
@@ -318,7 +309,11 @@ entityList.addEventListener('submit', (event) => {
   const input = form.elements.category;
   const category = input.value.trim();
   if (category) {
-    addCategoryAsync(Number(form.dataset.id), category);
+    addCategoryAsync(
+      Number(form.dataset.id),
+      category,
+      event.submitter || form.querySelector('button[type="submit"]'),
+    );
   }
   form.reset();
 });
