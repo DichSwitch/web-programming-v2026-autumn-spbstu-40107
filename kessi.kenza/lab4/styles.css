@@ -19,12 +19,12 @@ body {
   gap: 12px;
   max-width: 420px;
   padding: 16px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 }
 
-.entity-form-field {
+.entity-form__field {
   display: grid;
   gap: 4px;
   font-size: 14px;
@@ -40,7 +40,7 @@ button {
   border: none;
   border-radius: 6px;
   background: #2563eb;
-  color: #fff;
+  color: #ffffff;
   cursor: pointer;
 }
 
@@ -53,15 +53,15 @@ button {
   outline-offset: 2px;
 }
 
-.btn-danger {
+.btn--danger {
   background: #dc2626;
 }
 
-.btn-danger:hover {
+.btn--danger:hover {
   background: #b91c1c;
 }
 
-.btn-small {
+.btn--small {
   padding: 2px 8px;
   font-size: 12px;
   background: #64748b;
@@ -78,22 +78,22 @@ button {
   display: grid;
   gap: 8px;
   padding: 16px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 10%);
 }
 
-.card-name {
+.card__name {
   margin: 0;
   font-size: 18px;
 }
 
-.card-price,
-.card-meta {
+.card__price,
+.card__meta {
   margin: 0;
 }
 
-.card-tags {
+.card__tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -109,7 +109,22 @@ button {
   font-size: 13px;
 }
 
-.card-category-form {
+.card__category-form {
   display: grid;
   gap: 6px;
+}
+.form-status {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 14px;
+  color: #15803d;
+}
+
+.form-status--error {
+  color: #b91c1c;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
