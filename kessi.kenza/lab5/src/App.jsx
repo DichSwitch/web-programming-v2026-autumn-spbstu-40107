@@ -37,13 +37,11 @@ function parseTags(value) {
 
 export default function App() {
   const [notes, setNotes] = useState(loadNotes);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
   const [search, setSearch] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(null);
   const formRef = useRef(null);
 
   useEffect(() => {
@@ -76,22 +74,20 @@ export default function App() {
     return result;
   }, [notes, allTags]);
 
-  // Читаем значения из состояния React, а если их нет — прямо из DOM.
-  // Так заметка создастся даже если поля были заполнены программно
-  // без событий onChange.
+  // Поля формы НЕ контролируются React: их значения читаются напрямую из DOM
+  // в момент отправки. Ничто не может их "сбросить" между вводом и кликом.
   function readFormValues() {
     const elements = formRef.current.elements;
     return {
-      titleValue: (title || String(elements.title.value)).trim(),
-      contentValue: (content || String(elements.content.value)).trim(),
-      tagsValue: tagsInput || String(elements.tags.value),
+      titleValue: String(elements.title.value).trim(),
+      contentValue: String(elements.content.value).trim(),
+      tagsValue: String(elements.tags.value),
     };
   }
 
   function resetForm() {
-    setTitle('');
-    setContent('');
-    setTagsInput('');
+    setEditingId(null);
+    setDraft(null);
     formRef.current.reset();
   }
 
@@ -100,7 +96,7 @@ export default function App() {
     if (!titleValue) {
       return;
     }
-    const noteTags = parseTags(tagsValue.trim());
+    const noteTags = parseTags(tagsValue);
     if (editingId === null) {
       const note = {
         id: Date.now(),
@@ -123,7 +119,6 @@ export default function App() {
             : note,
         ),
       );
-      setEditingId(null);
     }
     resetForm();
   }
@@ -139,18 +134,13 @@ export default function App() {
 
   function startEdit(note) {
     setEditingId(note.id);
-    setTitle(note.title);
-    setContent(note.content);
-    setTagsInput(note.tags.join(', '));
+    setDraft(note);
   }
 
   function deleteNote(id) {
     setNotes((prev) => prev.filter((note) => note.id !== id));
     if (editingId === id) {
-      setEditingId(null);
-      setTitle('');
-      setContent('');
-      setTagsInput('');
+      resetForm();
     }
   }
 
@@ -158,27 +148,31 @@ export default function App() {
     <main className="app" data-testid="app">
       <h1>Заметки</h1>
 
-      <form ref={formRef} className="note-form" onSubmit={handleSubmit}>
+      {/* key={editingId} пересоздаёт форму при входе в режим редактирования,
+          чтобы defaultValue подставились данные заметки */}
+      <form
+        ref={formRef}
+        key={editingId ?? 'new'}
+        className="note-form"
+        onSubmit={handleSubmit}
+      >
         <input
           data-testid="note-title"
           name="title"
           placeholder="Заголовок"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
+          defaultValue={draft ? draft.title : ''}
         />
         <textarea
           data-testid="note-content"
           name="content"
           placeholder="Текст заметки"
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
+          defaultValue={draft ? draft.content : ''}
         />
         <input
           data-testid="note-tags"
           name="tags"
           placeholder="Теги через запятую"
-          value={tagsInput}
-          onChange={(event) => setTagsInput(event.target.value)}
+          defaultValue={draft ? draft.tags.join(', ') : ''}
         />
         <button data-testid="note-add" type="button" onClick={handleAddClick}>
           {editingId === null ? 'Добавить заметку' : 'Сохранить изменения'}
