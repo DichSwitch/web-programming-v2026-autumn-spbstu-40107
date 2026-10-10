@@ -72,9 +72,9 @@ const Layout = ({children, isAuth, setAuth}) => {
                   )}
                 </NavLink>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    await fetch('/api/logout', {method: 'POST'});
                     setAuth(false);
-                    localStorage.removeItem('isAuth');
                   }}
                   style={{
                     background: 'none',
@@ -154,16 +154,27 @@ const ProtectedRoute = ({isAuth, children}) =>
   isAuth ? children : <Navigate to="/login" replace />;
 
 export default function App() {
-  const [isAuth, setIsAuth] = useState(
-    () => localStorage.getItem('isAuth') === 'true',
-  );
+  const [isAuth, setIsAuth] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [cartUpdate, setCartUpdate] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/check-auth')
+      .then((r) => r.json())
+      .then((data) => {
+        setIsAuth(data.isAuth);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
+  }, []);
 
   useEffect(() => {
     const handleStorage = () => setCartUpdate((prev) => prev + 1);
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  if (isLoading) return null;
 
   return (
     <BrowserRouter>

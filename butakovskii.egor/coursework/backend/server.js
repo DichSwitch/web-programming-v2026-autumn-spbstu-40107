@@ -1,11 +1,19 @@
 const express = require('express');
-const cors = require('cors');
+const session = require('express-session');
 const fs = require('fs').promises;
 const path = require('path');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+
+app.use(
+  session({
+    secret: 'secret-key-gadget',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {secure: false},
+  }),
+);
 
 const DATA_DIR = path.join(__dirname, 'data');
 
@@ -27,6 +35,7 @@ app.post('/login', async (req, res) => {
   );
 
   if (user) {
+    req.session.user = user.username;
     res.json({success: true, username: user.username});
   } else {
     res.status(401).json({success: false});
@@ -34,7 +43,17 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
+  req.session.destroy();
+  res.clearCookie('connect.sid');
   res.json({success: true});
+});
+
+app.get('/check-auth', (req, res) => {
+  if (req.session.user) {
+    res.json({isAuth: true});
+  } else {
+    res.json({isAuth: false});
+  }
 });
 
 app.get('/goods', async (req, res) => {

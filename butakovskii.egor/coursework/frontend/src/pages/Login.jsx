@@ -30,7 +30,7 @@ export default function Login({setAuth}) {
     }
 
     try {
-      const res = await fetch('http://localhost:8080/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(form),
@@ -39,7 +39,6 @@ export default function Login({setAuth}) {
 
       if (data.success) {
         setAuth(true);
-        localStorage.setItem('isAuth', 'true');
         navigate('/');
       } else {
         setPopupError(

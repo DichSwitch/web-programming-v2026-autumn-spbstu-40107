@@ -25,7 +25,7 @@ export default function Catalog() {
   const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
-    fetch('http://localhost:8080/goods')
+    fetch('/api/goods')
       .then((r) => r.json())
       .then(setProducts);
   }, []);

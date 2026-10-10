@@ -23,10 +23,10 @@ export default function Cart() {
   const [successModal, setSuccessModal] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:8080/goods')
+    fetch('/api/goods')
       .then((r) => r.json())
       .then(setProducts);
-    fetch('http://localhost:8080/orders')
+    fetch('/api/orders')
       .then((r) => r.json())
       .then(setOrders);
   }, []);
@@ -85,7 +85,7 @@ export default function Cart() {
     e.preventDefault();
     if (selectedItems.length === 0) return;
 
-    await fetch('http://localhost:8080/orders', {
+    await fetch('/api/orders', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -102,9 +102,7 @@ export default function Cart() {
     setSelectedItems([]);
     window.dispatchEvent(new Event('storage'));
 
-    const updatedOrders = await fetch('http://localhost:8080/orders').then(
-      (r) => r.json(),
-    );
+    const updatedOrders = await fetch('/api/orders').then((r) => r.json());
     setOrders(updatedOrders);
 
     setSuccessModal(true);
