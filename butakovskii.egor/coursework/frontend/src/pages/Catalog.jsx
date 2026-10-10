@@ -9,23 +9,38 @@ export default function Catalog() {
   const [filters, setFilters] = useState({
     priceFrom: '',
     priceTo: '',
-    type: '',
-    color: '',
+    types: [],
+    colors: [],
   });
   const [appliedFilters, setAppliedFilters] = useState({
     priceFrom: '',
     priceTo: '',
-    type: '',
-    color: '',
+    types: [],
+    colors: [],
   });
   const [sort, setSort] = useState('new');
   const [modalItem, setModalItem] = useState(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
     fetch('http://localhost:8080/goods')
       .then((r) => r.json())
       .then(setProducts);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setModalItem(null);
+      }
+    };
+    if (modalItem) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalItem]);
 
   const updateCart = (id, delta) => {
     const newCart = {...cart};
@@ -37,6 +52,16 @@ export default function Catalog() {
     window.dispatchEvent(new Event('storage'));
   };
 
+  const toggleFilter = (field, value) => {
+    setFilters((prev) => {
+      const list = prev[field];
+      const updated = list.includes(value)
+        ? list.filter((item) => item !== value)
+        : [...list, value];
+      return {...prev, [field]: updated};
+    });
+  };
+
   const processedProducts = useMemo(() => {
     let result = [...products];
 
@@ -46,10 +71,10 @@ export default function Catalog() {
       );
     if (appliedFilters.priceTo)
       result = result.filter((p) => p.price <= Number(appliedFilters.priceTo));
-    if (appliedFilters.type)
-      result = result.filter((p) => p.type === appliedFilters.type);
-    if (appliedFilters.color)
-      result = result.filter((p) => p.color === appliedFilters.color);
+    if (appliedFilters.types.length > 0)
+      result = result.filter((p) => appliedFilters.types.includes(p.type));
+    if (appliedFilters.colors.length > 0)
+      result = result.filter((p) => appliedFilters.colors.includes(p.color));
 
     result.sort((a, b) => {
       if (sort === 'cheap') return a.price - b.price;
@@ -60,6 +85,73 @@ export default function Catalog() {
 
     return result;
   }, [products, appliedFilters, sort]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedFilters, sort]);
+
+  const totalPages = Math.ceil(processedProducts.length / ITEMS_PER_PAGE);
+  const currentProducts = processedProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    let pages = [];
+    if (totalPages > 3) {
+      pages = [1, 2, 3, '...', totalPages];
+    } else {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    }
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          marginTop: '40px',
+        }}
+      >
+        {pages.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => p !== '...' && setCurrentPage(p)}
+            style={{
+              border: 'none',
+              background:
+                p === currentPage ? 'var(--primary-blue)' : 'transparent',
+              color: p === currentPage ? '#fff' : 'var(--primary-blue)',
+              fontWeight: 'bold',
+              cursor: p !== '...' ? 'pointer' : 'default',
+              padding: '8px 12px',
+              borderRadius: '6px',
+            }}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  const availableTypes = [
+    {id: 'smartphones', label: 'Смартфоны'},
+    {id: 'headphones', label: 'Наушники'},
+    {id: 'watches', label: 'Умные часы'},
+    {id: 'accessories', label: 'Аксессуары'},
+    {id: 'acoustics', label: 'Акустика'},
+  ];
+
+  const availableColors = [
+    {id: 'black', label: 'Черный'},
+    {id: 'white', label: 'Белый'},
+    {id: 'purple', label: 'Фиолетовый'},
+    {id: 'blue', label: 'Синий'},
+    {id: 'gray', label: 'Серый'},
+  ];
 
   return (
     <div className="container" style={{marginTop: '30px'}}>
@@ -103,148 +195,153 @@ export default function Catalog() {
             ))}
           </div>
 
-          {processedProducts.length > 0 ? (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '20px',
-              }}
-            >
-              {processedProducts.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => setModalItem(p)}
-                  style={{
-                    background: '#f9f9f9',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
+          {currentProducts.length > 0 ? (
+            <>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '20px',
+                }}
+              >
+                {currentProducts.map((p) => (
                   <div
+                    key={p.id}
+                    onClick={() => setModalItem(p)}
                     style={{
-                      position: 'absolute',
-                      top: 15,
-                      right: 15,
+                      background: '#f9f9f9',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      cursor: 'pointer',
+                      position: 'relative',
                       display: 'flex',
-                      gap: '5px',
-                      zIndex: 2,
+                      flexDirection: 'column',
                     }}
                   >
-                    {p.labels?.includes('new') && (
-                      <span
-                        style={{
-                          background: '#00d285',
-                          color: '#fff',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        Новинка
-                      </span>
-                    )}
-                    {p.labels?.includes('hit') && (
-                      <span
-                        style={{
-                          background: 'var(--pink-accent)',
-                          color: '#fff',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        Хит
-                      </span>
-                    )}
-                  </div>
-
-                  <img
-                    src={p.image}
-                    alt={p.name}
-                    style={{
-                      width: '100%',
-                      height: '180px',
-                      objectFit: 'contain',
-                      marginBottom: '15px',
-                    }}
-                  />
-                  <h3 style={{fontSize: '18px', margin: '0 0 10px 0'}}>
-                    {p.price} ₽
-                  </h3>
-                  <p style={{margin: '0 0 10px 0', fontSize: '13px', flex: 1}}>
-                    {p.name}
-                  </p>
-                  <p
-                    style={{
-                      margin: '0 0 15px 0',
-                      fontSize: '12px',
-                      color: '#f5a623',
-                    }}
-                  >
-                    ★ {p.rating}
-                  </p>
-
-                  <div onClick={(e) => e.stopPropagation()}>
-                    {!cart[p.id] ? (
-                      <button
-                        onClick={() => updateCart(p.id, 1)}
-                        className="btn-primary"
-                        style={{width: '100%'}}
-                      >
-                        В корзину
-                      </button>
-                    ) : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          background: 'var(--pink-accent)',
-                          color: '#fff',
-                          borderRadius: '6px',
-                          padding: '8px 15px',
-                        }}
-                      >
-                        <button
-                          onClick={() => updateCart(p.id, -1)}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 15,
+                        right: 15,
+                        display: 'flex',
+                        gap: '5px',
+                        zIndex: 2,
+                      }}
+                    >
+                      {p.labels?.includes('new') && (
+                        <span
                           style={{
-                            background: 'none',
-                            border: 'none',
+                            background: '#00d285',
                             color: '#fff',
-                            cursor: 'pointer',
-                            fontSize: '18px',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
                           }}
                         >
-                          -
-                        </button>
-                        <span style={{fontWeight: '500'}}>
-                          {cart[p.id]} шт.
+                          Новинка
                         </span>
+                      )}
+                      {p.labels?.includes('hit') && (
+                        <span
+                          style={{
+                            background: 'var(--pink-accent)',
+                            color: '#fff',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          Хит
+                        </span>
+                      )}
+                    </div>
+
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      style={{
+                        width: '100%',
+                        height: '180px',
+                        objectFit: 'contain',
+                        marginBottom: '15px',
+                      }}
+                    />
+                    <h3 style={{fontSize: '18px', margin: '0 0 10px 0'}}>
+                      {p.price} ₽
+                    </h3>
+                    <p
+                      style={{margin: '0 0 10px 0', fontSize: '13px', flex: 1}}
+                    >
+                      {p.name}
+                    </p>
+                    <p
+                      style={{
+                        margin: '0 0 15px 0',
+                        fontSize: '12px',
+                        color: '#f5a623',
+                      }}
+                    >
+                      ★ {p.rating}
+                    </p>
+
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {!cart[p.id] ? (
                         <button
                           onClick={() => updateCart(p.id, 1)}
+                          className="btn-primary"
+                          style={{width: '100%'}}
+                        >
+                          В корзину
+                        </button>
+                      ) : (
+                        <div
                           style={{
-                            background: 'none',
-                            border: 'none',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'var(--pink-accent)',
                             color: '#fff',
-                            cursor: 'pointer',
-                            fontSize: '18px',
+                            borderRadius: '6px',
+                            padding: '8px 15px',
                           }}
                         >
-                          +
-                        </button>
-                      </div>
-                    )}
+                          <button
+                            onClick={() => updateCart(p.id, -1)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#fff',
+                              cursor: 'pointer',
+                              fontSize: '18px',
+                            }}
+                          >
+                            -
+                          </button>
+                          <span style={{fontWeight: '500'}}>
+                            {cart[p.id]} шт.
+                          </span>
+                          <button
+                            onClick={() => updateCart(p.id, 1)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#fff',
+                              cursor: 'pointer',
+                              fontSize: '18px',
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              {renderPagination()}
+            </>
           ) : (
             <p>Товары по вашему запросу не найдены</p>
           )}
@@ -260,7 +357,7 @@ export default function Catalog() {
         >
           <div>
             <h4 style={{margin: '0 0 10px 0'}}>Цена, ₽</h4>
-            <div style={{display: 'flex', gap: '10px'}}>
+            <div style={{display: 'flex', gap: '10px', marginBottom: '10px'}}>
               <input
                 type="number"
                 placeholder="От"
@@ -292,32 +389,67 @@ export default function Catalog() {
                 }}
               />
             </div>
+            <input
+              type="range"
+              min="0"
+              max="100000"
+              step="500"
+              value={filters.priceTo || 100000}
+              onChange={(e) =>
+                setFilters({...filters, priceTo: e.target.value})
+              }
+              style={{
+                width: '100%',
+                accentColor: 'var(--primary-blue)',
+                cursor: 'pointer',
+              }}
+            />
           </div>
 
           <div>
             <h4 style={{margin: '0 0 10px 0'}}>Тип товара</h4>
-            {['smartphones', 'headphones', 'watches'].map((type) => (
+            {availableTypes.map((t) => (
               <label
-                key={type}
+                key={t.id}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '10px',
                   marginBottom: '8px',
                   fontSize: '14px',
+                  cursor: 'pointer',
                 }}
               >
                 <input
-                  type="radio"
-                  name="type"
-                  checked={filters.type === type}
-                  onChange={() => setFilters({...filters, type})}
+                  type="checkbox"
+                  checked={filters.types.includes(t.id)}
+                  onChange={() => toggleFilter('types', t.id)}
                 />
-                {type === 'smartphones'
-                  ? 'Смартфоны'
-                  : type === 'headphones'
-                    ? 'Наушники'
-                    : 'Умные часы'}
+                {t.label}
+              </label>
+            ))}
+          </div>
+
+          <div>
+            <h4 style={{margin: '0 0 10px 0'}}>Цвет</h4>
+            {availableColors.map((c) => (
+              <label
+                key={c.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.colors.includes(c.id)}
+                  onChange={() => toggleFilter('colors', c.id)}
+                />
+                {c.label}
               </label>
             ))}
           </div>
@@ -332,12 +464,12 @@ export default function Catalog() {
             </button>
             <button
               onClick={() => {
-                setFilters({priceFrom: '', priceTo: '', type: '', color: ''});
+                setFilters({priceFrom: '', priceTo: '', types: [], colors: []});
                 setAppliedFilters({
                   priceFrom: '',
                   priceTo: '',
-                  type: '',
-                  color: '',
+                  types: [],
+                  colors: [],
                 });
               }}
               style={{
@@ -378,6 +510,8 @@ export default function Catalog() {
               display: 'flex',
               gap: '40px',
               position: 'relative',
+              maxHeight: '90vh',
+              overflowY: 'auto',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -396,26 +530,110 @@ export default function Catalog() {
             >
               ✕
             </button>
-            <img
-              src={modalItem.image}
-              alt={modalItem.name}
-              style={{
-                width: '350px',
-                height: '350px',
-                objectFit: 'contain',
-                background: 'var(--bg-gray)',
-                borderRadius: '12px',
-              }}
-            />
+            <div style={{position: 'relative'}}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  left: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '5px',
+                  zIndex: 2,
+                }}
+              >
+                {modalItem.labels?.includes('new') && (
+                  <span
+                    style={{
+                      background: '#00d285',
+                      color: '#fff',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Новинка
+                  </span>
+                )}
+                {modalItem.labels?.includes('hit') && (
+                  <span
+                    style={{
+                      background: 'var(--pink-accent)',
+                      color: '#fff',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    Хит
+                  </span>
+                )}
+              </div>
+              <img
+                src={modalItem.image}
+                alt={modalItem.name}
+                style={{
+                  width: '350px',
+                  height: '350px',
+                  objectFit: 'contain',
+                  background: 'var(--bg-gray)',
+                  borderRadius: '12px',
+                }}
+              />
+            </div>
+
             <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
               <h2 style={{margin: '0 0 10px 0'}}>{modalItem.name}</h2>
               <p style={{color: '#f5a623', margin: '0 0 20px 0'}}>
                 ★ {modalItem.rating}
               </p>
+
+              <div style={{flex: 1}}>
+                <h4 style={{margin: '0 0 5px 0', fontSize: '16px'}}>
+                  Описание
+                </h4>
+                <p
+                  style={{
+                    fontSize: '13px',
+                    color: '#555',
+                    margin: '0 0 15px 0',
+                    lineHeight: '1.5',
+                  }}
+                >
+                  Надежное устройство, сочетающее в себе стильный дизайн и
+                  современные технологии. Отличный выбор для повседневных задач
+                  и комфортного использования.
+                </p>
+                <h4 style={{margin: '0 0 5px 0', fontSize: '16px'}}>
+                  Характеристики
+                </h4>
+                <ul
+                  style={{
+                    fontSize: '13px',
+                    color: '#555',
+                    margin: '0 0 20px 0',
+                    paddingLeft: '20px',
+                    lineHeight: '1.6',
+                  }}
+                >
+                  <li>
+                    <strong>Гарантия:</strong> 1 год
+                  </li>
+                  <li>
+                    <strong>Тип товара:</strong> {modalItem.type}
+                  </li>
+                  <li>
+                    <strong>Цвет:</strong> {modalItem.color}
+                  </li>
+                </ul>
+              </div>
+
               <h3
                 style={{
                   fontSize: '28px',
-                  margin: 'auto 0 20px 0',
+                  margin: '0 0 20px 0',
                   textAlign: 'right',
                 }}
               >

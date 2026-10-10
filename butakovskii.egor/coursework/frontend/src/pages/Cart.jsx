@@ -49,6 +49,7 @@ export default function Cart() {
   const totalCost = cartItems
     .filter((i) => selectedItems.includes(i.id))
     .reduce((sum, i) => sum + i.price * i.count, 0);
+
   const totalCount = cartItems
     .filter((i) => selectedItems.includes(i.id))
     .reduce((sum, i) => sum + i.count, 0);
@@ -96,12 +97,15 @@ export default function Cart() {
       }),
     });
 
-    const newCart = {...cart};
-    selectedItems.forEach((id) => delete newCart[id]);
-    setCart(newCart);
+    localStorage.removeItem('cart');
+    setCart({});
     setSelectedItems([]);
-    localStorage.setItem('cart', JSON.stringify(newCart));
     window.dispatchEvent(new Event('storage'));
+
+    const updatedOrders = await fetch('http://localhost:8080/orders').then(
+      (r) => r.json(),
+    );
+    setOrders(updatedOrders);
 
     setSuccessModal(true);
   };
@@ -170,7 +174,7 @@ export default function Cart() {
             <div
               style={{display: 'flex', flexDirection: 'column', gap: '15px'}}
             >
-              {orders.map((o, i) => (
+              {orders.map((o) => (
                 <div
                   key={o.id}
                   style={{
@@ -455,12 +459,10 @@ export default function Cart() {
                           marginBottom: '5px',
                         }}
                       >
-                        E-mail{' '}
-                        <span style={{color: 'var(--pink-accent)'}}>*</span>
+                        E-mail
                       </label>
                       <input
                         type="email"
-                        required
                         value={form.email}
                         onChange={(e) =>
                           setForm({...form, email: e.target.value})
@@ -488,6 +490,7 @@ export default function Cart() {
                     >
                       <input
                         type="radio"
+                        name="delivery_type"
                         checked={form.delivery === 'pickup'}
                         onChange={() => setForm({...form, delivery: 'pickup'})}
                       />{' '}
@@ -504,6 +507,7 @@ export default function Cart() {
                     >
                       <input
                         type="radio"
+                        name="delivery_type"
                         checked={form.delivery === 'delivery'}
                         onChange={() =>
                           setForm({...form, delivery: 'delivery'})
@@ -569,8 +573,8 @@ export default function Cart() {
                       }}
                     >
                       <option value="">Не выбрано</option>
-                      <option value="card">Картой онлайн</option>
-                      <option value="cash">При получении</option>
+                      <option value="card">По карте</option>
+                      <option value="cash">Наличными</option>
                     </select>
                   </div>
 
@@ -591,7 +595,7 @@ export default function Cart() {
                         setForm({...form, packaging: e.target.checked})
                       }
                     />{' '}
-                    Нужна упаковка
+                    Нужна ли упаковка
                   </label>
 
                   <button
@@ -627,6 +631,7 @@ export default function Cart() {
             justifyContent: 'center',
             zIndex: 1000,
           }}
+          onClick={() => setDeleteModal(null)}
         >
           <div
             style={{
@@ -637,6 +642,7 @@ export default function Cart() {
               textAlign: 'center',
               position: 'relative',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setDeleteModal(null)}
@@ -654,8 +660,7 @@ export default function Cart() {
               ✕
             </button>
             <h3 style={{margin: '20px 0', fontSize: '18px'}}>
-              Вы действительно хотите удалить{' '}
-              {deleteModal === 'all' ? 'все выбранные товары' : 'этот товар'}?
+              Вы уверены, что хотите удалить?
             </h3>
             <div
               style={{
@@ -699,22 +704,21 @@ export default function Cart() {
             justifyContent: 'center',
             zIndex: 1000,
           }}
+          onClick={() => setSuccessModal(false)}
         >
           <div
             style={{
               background: '#fff',
               padding: '40px',
               borderRadius: '16px',
-              width: '400px',
+              width: '420px',
               textAlign: 'center',
               position: 'relative',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <button
-              onClick={() => {
-                setSuccessModal(false);
-                window.location.href = '/history';
-              }}
+              onClick={() => setSuccessModal(false)}
               style={{
                 position: 'absolute',
                 top: 15,
@@ -728,14 +732,10 @@ export default function Cart() {
             >
               ✕
             </button>
-            <div style={{fontSize: '50px', marginBottom: '10px'}}>🎉</div>
-            <h2 style={{margin: '0 0 15px 0'}}>Спасибо за заказ!</h2>
-            <p style={{color: '#666', fontSize: '14px', marginBottom: '30px'}}>
-              Номер заказа 62903.
-              <br />
-              Мы свяжемся с вами в течение 10 минут, чтобы уточнить удобное для
-              вас время доставки!
-            </p>
+            <div style={{fontSize: '48px', marginBottom: '15px'}}>🎉</div>
+            <h2 style={{margin: '0 0 25px 0', fontSize: '20px'}}>
+              Спасибо, ваш заказ успешно оформлен
+            </h2>
             <button
               onClick={() => {
                 setSuccessModal(false);

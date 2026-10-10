@@ -1,4 +1,11 @@
-import {BrowserRouter, Routes, Route, Navigate, Link} from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  NavLink,
+  Link,
+} from 'react-router-dom';
 import {useState, useEffect} from 'react';
 import Login from './pages/Login';
 import Catalog from './pages/Catalog';
@@ -11,6 +18,15 @@ const Layout = ({children, isAuth, setAuth}) => {
     (sum, count) => sum + count,
     0,
   );
+
+  const navLinkStyle = ({isActive}) => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    color: isActive ? 'var(--primary-blue)' : '#333',
+    fontWeight: isActive ? '700' : '500',
+    textDecoration: 'none',
+  });
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', minHeight: '100vh'}}>
@@ -32,21 +48,14 @@ const Layout = ({children, isAuth, setAuth}) => {
               gap: '30px',
               alignItems: 'center',
               fontSize: '14px',
-              fontWeight: '500',
             }}
           >
-            <Link
-              to="/catalog"
-              style={{display: 'flex', alignItems: 'center', gap: '8px'}}
-            >
+            <NavLink to="/catalog" style={navLinkStyle}>
               <img src="/catalog.svg" alt="" width="16" /> Каталог
-            </Link>
+            </NavLink>
             {isAuth ? (
               <>
-                <Link
-                  to="/cart"
-                  style={{display: 'flex', alignItems: 'center', gap: '8px'}}
-                >
+                <NavLink to="/cart" style={navLinkStyle}>
                   <img src="/card.svg" alt="" width="16" /> Корзина
                   {cartCount > 0 && (
                     <span
@@ -61,7 +70,7 @@ const Layout = ({children, isAuth, setAuth}) => {
                       {cartCount}
                     </span>
                   )}
-                </Link>
+                </NavLink>
                 <button
                   onClick={() => {
                     setAuth(false);
@@ -82,17 +91,9 @@ const Layout = ({children, isAuth, setAuth}) => {
                 </button>
               </>
             ) : (
-              <Link
-                to="/login"
-                style={{
-                  color: 'var(--primary-blue)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
+              <NavLink to="/login" style={navLinkStyle}>
                 <img src="/profile.svg" alt="" width="16" /> Войти
-              </Link>
+              </NavLink>
             )}
           </nav>
         </div>

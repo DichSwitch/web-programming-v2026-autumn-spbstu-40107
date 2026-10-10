@@ -4,13 +4,13 @@ import {useNavigate} from 'react-router-dom';
 export default function Login({setAuth}) {
   const [form, setForm] = useState({username: '', password: ''});
   const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState('');
+  const [popupError, setPopupError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
-    setServerError('');
+    setPopupError('');
 
     let hasError = false;
     const newErrors = {};
@@ -24,7 +24,10 @@ export default function Login({setAuth}) {
       hasError = true;
     }
 
-    if (hasError) return setErrors(newErrors);
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
 
     try {
       const res = await fetch('http://localhost:8080/login', {
@@ -39,12 +42,12 @@ export default function Login({setAuth}) {
         localStorage.setItem('isAuth', 'true');
         navigate('/');
       } else {
-        setServerError(
-          'Такого пользователя нет, возможно неправильный логин или пароль проверьте данные',
+        setPopupError(
+          'такого пользователя нет, возможно неправильный логин или пароль - проверьте данные',
         );
       }
-    } catch (err) {
-      setServerError('Ошибка соединения с сервером');
+    } catch {
+      setPopupError('Ошибка соединения с сервером');
     }
   };
 
@@ -150,14 +153,71 @@ export default function Login({setAuth}) {
           >
             Войти
           </button>
-
-          {serverError && (
-            <div style={{color: 'red', fontSize: '12px', textAlign: 'center'}}>
-              {serverError}
-            </div>
-          )}
         </form>
       </div>
+
+      {popupError && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setPopupError('')}
+        >
+          <div
+            style={{
+              background: '#fff',
+              padding: '30px',
+              borderRadius: '16px',
+              width: '400px',
+              textAlign: 'center',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setPopupError('')}
+              style={{
+                position: 'absolute',
+                top: 15,
+                right: 15,
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                color: '#999',
+                cursor: 'pointer',
+              }}
+            >
+              ✕
+            </button>
+            <h3
+              style={{
+                margin: '20px 0',
+                fontSize: '16px',
+                color: '#333',
+                lineHeight: '1.5',
+              }}
+            >
+              {popupError}
+            </h3>
+            <button
+              onClick={() => setPopupError('')}
+              className="btn-primary"
+              style={{width: '120px'}}
+            >
+              Ок
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
