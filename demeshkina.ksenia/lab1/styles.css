@@ -6,7 +6,7 @@
 }
 
 .green {
-  background: rgb(76 251 84);
+  background: green;
   position: relative;
   width: 300px;
   height: 200px;
@@ -14,7 +14,7 @@
 }
 
 .red {
-  background: rgb(254 64 64);
+  background: red;
   position: absolute;
   width: 300px;
   height: 200px;
@@ -24,7 +24,7 @@
 }
 
 .blue {
-  background: rgb(28 28 237);
+  background: blue;
   position: absolute;
   width: 300px;
   height: 200px;
