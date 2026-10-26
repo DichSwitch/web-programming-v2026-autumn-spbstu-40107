@@ -13,7 +13,7 @@ permissions:
 jobs:
   report:
     name: Course progress
-    uses: web-programming-contest/web-programming-ci-utils/.github/workflows/progress-report.yml@3ffd1c5e7af9c9e818e0102e98d7c62e5d488f8f
+    uses: web-programming-contest/web-programming-ci-utils/.github/workflows/progress-report.yml@a1d660504bf9240b0867be3d4925371cd9739e32
     with:
       utils_repository: web-programming-contest/web-programming-ci-utils
-      utils_ref: "3ffd1c5e7af9c9e818e0102e98d7c62e5d488f8f"
+      utils_ref: "a1d660504bf9240b0867be3d4925371cd9739e32"
