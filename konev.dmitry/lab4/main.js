@@ -36,7 +36,7 @@ function saveMovies() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(movies));
 }
 
-function createMovieCard(movie, index) {
+function createMovieCard(movie) {
   const card = document.createElement('article');
   card.className = 'movie-card';
   card.dataset.testid = 'entity-card';
@@ -75,9 +75,13 @@ function createMovieCard(movie, index) {
 
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    movies.splice(index, 1);
-    saveMovies();
-    renderMovies();
+    const movieIndex = movies.indexOf(movie);
+
+    if (movieIndex !== -1) {
+      movies.splice(movieIndex, 1);
+      saveMovies();
+      renderMovies();
+    }
   });
 
   card.append(title, director, castHeading, actorsList, deleteButton);
@@ -88,8 +92,8 @@ function createMovieCard(movie, index) {
 function renderMovies() {
   movieList.replaceChildren();
 
-  movies.forEach((movie, index) => {
-    movieList.append(createMovieCard(movie, index));
+  movies.forEach((movie) => {
+    movieList.append(createMovieCard(movie));
   });
 
   updateMovieSelect();
